@@ -1,0 +1,655 @@
+{
+  "name": "Issue-Routing & Provider Feedback System",
+  "nodes": [
+    {
+      "parameters": {
+        "pollTimes": {
+          "item": [
+            {
+              "mode": "everyMinute"
+            }
+          ]
+        },
+        "documentId": {
+          "__rl": true,
+          "value": "1zVVeQD5yBVW6P1J2SziabwiSYm79X2U67vc8elPSSSk",
+          "mode": "list",
+          "cachedResultName": "Provider Feedback Form (Responses)",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1zVVeQD5yBVW6P1J2SziabwiSYm79X2U67vc8elPSSSk/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 598582605,
+          "mode": "list",
+          "cachedResultName": "Form Responses 1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1zVVeQD5yBVW6P1J2SziabwiSYm79X2U67vc8elPSSSk/edit#gid=598582605"
+        },
+        "event": "rowAdded",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheetsTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "e2fa83ac-f50d-4ed8-b0ab-2a0548e5581b",
+      "name": "Google Sheets Trigger",
+      "credentials": {
+        "googleSheetsTriggerOAuth2Api": {
+          "id": "3WXSdVhXWgxozhYk",
+          "name": "Google Sheets Trigger account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "0027a619-701a-4fb2-b0e9-0cef94eaf0a5",
+              "name": "=provider_name",
+              "value": "={{$json[\"Provider Name\"]}}",
+              "type": "string"
+            },
+            {
+              "id": "f13cc194-1c4d-4c8f-a107-78f79b660d25",
+              "name": "=provider_email",
+              "value": "={{$json[\"Provider Email\"]}}",
+              "type": "string"
+            },
+            {
+              "id": "0fafda6b-d139-4a46-b111-09315fe2eccd",
+              "name": "=issue_type",
+              "value": "={{$json[\"Issue Type\"].toUpperCase()}}",
+              "type": "string"
+            },
+            {
+              "id": "3ad396cd-6e0c-45a8-b0d2-f100f4638f6b",
+              "name": "=subject",
+              "value": "={{$json[\"Subject\"]}}",
+              "type": "string"
+            },
+            {
+              "id": "7e77c67b-17b0-4fa2-a3d7-dd59d1c8c9fc",
+              "name": "=description",
+              "value": "={{$json[\"Description\"]}}",
+              "type": "string"
+            },
+            {
+              "id": "be91a043-8d0e-4a75-88ad-8c7710088678",
+              "name": "=source",
+              "value": "google_form",
+              "type": "string"
+            },
+            {
+              "id": "79991745-162d-4896-b99d-7bd6a030a4e8",
+              "name": "=status",
+              "value": "NEW",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        208,
+        0
+      ],
+      "id": "d235357a-f875-4b34-bf96-4908ab2a799e",
+      "name": "Set Node (Normalize + Defaults)"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "808b83e2-6e33-4227-a070-b252be3e2fc4",
+              "leftValue": "={{$json[\"default_team\"]}}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "exists",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        624,
+        0
+      ],
+      "id": "c9179630-9ec7-4568-8477-cc51dd7e7c6c",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "742fad2a-9fe0-4e59-9394-89e69721ebc1",
+              "name": "assigned_team",
+              "value": "OPS",
+              "type": "string"
+            },
+            {
+              "id": "dc05e9ae-4914-4000-9a7d-485efffd10bb",
+              "name": "severity",
+              "value": "MED",
+              "type": "string"
+            },
+            {
+              "id": "e59490a2-5d97-4fc8-bc94-cdec56ead7f1",
+              "name": "slack_channel",
+              "value": "#ops",
+              "type": "string"
+            },
+            {
+              "id": "d8a5c916-e7a3-4604-bd26-d64898a7ccca",
+              "name": "sla_hours",
+              "value": "72",
+              "type": "string"
+            },
+            {
+              "id": "399d78bd-bfaf-4f0a-9f80-f0ea4b79a160",
+              "name": "provider_name",
+              "value": "={{$node[\"Set Node (Normalize + Defaults)\"].json.provider_name}}",
+              "type": "string"
+            },
+            {
+              "id": "ffc2bc2c-fe78-4000-b413-c8413d11d047",
+              "name": "provider_email",
+              "value": "={{$node[\"Set Node (Normalize + Defaults)\"].json.provider_email}}",
+              "type": "string"
+            },
+            {
+              "id": "c4ce04eb-379c-40a9-bcd9-61aee05cd58b",
+              "name": "issue_type",
+              "value": "={{$node[\"Set Node (Normalize + Defaults)\"].json.issue_type}}",
+              "type": "string"
+            },
+            {
+              "id": "fb05c3d0-4902-42d6-823d-bfbb6d822b43",
+              "name": "subject",
+              "value": "={{$node[\"Set Node (Normalize + Defaults)\"].json.subject}}",
+              "type": "string"
+            },
+            {
+              "id": "585a2c76-2fed-429d-897a-4ea4475ebd30",
+              "name": "description",
+              "value": "={{$node[\"Set Node (Normalize + Defaults)\"].json.description}}",
+              "type": "string"
+            },
+            {
+              "id": "17937468-8488-4f14-95b5-0427d427374f",
+              "name": "source",
+              "value": "={{$node[\"Set Node (Normalize + Defaults)\"].json.source}}",
+              "type": "string"
+            },
+            {
+              "id": "52af9878-7b11-49d6-85fe-4fd557e5b57c",
+              "name": "status",
+              "value": "={{$node[\"Set Node (Normalize + Defaults)\"].json.status}}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        832,
+        96
+      ],
+      "id": "c08d2d12-862a-4235-8747-9e1bb55b67ef",
+      "name": "Set Routing (Fallback)"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "f9d935d0-e1b3-456e-a7a7-d47af67c2fba",
+              "name": "assigned_team",
+              "value": "={{$json.default_team}}",
+              "type": "string"
+            },
+            {
+              "id": "035336b7-078e-4a6e-b136-80b6433d2a4d",
+              "name": "severity",
+              "value": "={{$json.default_severity}}",
+              "type": "string"
+            },
+            {
+              "id": "5dfbcce9-9f60-48ce-9b14-47106d96e4c3",
+              "name": "slack_channel",
+              "value": "={{$json.slack_channel}}",
+              "type": "string"
+            },
+            {
+              "id": "d97638b5-3b84-4df8-a0ee-4271e07e7551",
+              "name": "sla_hours",
+              "value": "={{$json.sla_hours}}",
+              "type": "string"
+            },
+            {
+              "id": "8dcb5343-42c4-4ef1-8de4-360b05c15b4b",
+              "name": "provider_name",
+              "value": "={{$node[\"Set Node (Normalize + Defaults)\"].json.provider_name}}",
+              "type": "string"
+            },
+            {
+              "id": "f9ba1244-3b3d-4e53-a885-bf6210ff8607",
+              "name": "provider_email",
+              "value": "={{$node[\"Set Node (Normalize + Defaults)\"].json.provider_email}}",
+              "type": "string"
+            },
+            {
+              "id": "4bfdf0c0-5cb4-4bb1-8908-b4d33de51f58",
+              "name": "issue_type",
+              "value": "={{$node[\"Set Node (Normalize + Defaults)\"].json.issue_type}}",
+              "type": "string"
+            },
+            {
+              "id": "c694c40f-82ff-45ec-b63f-60da42a6b976",
+              "name": "subject",
+              "value": "={{$node[\"Set Node (Normalize + Defaults)\"].json.subject}}",
+              "type": "string"
+            },
+            {
+              "id": "347c2417-f16f-48f6-83ec-a8e72ac7da2f",
+              "name": "description",
+              "value": "={{$node[\"Set Node (Normalize + Defaults)\"].json.description}}",
+              "type": "string"
+            },
+            {
+              "id": "c43704f2-bff8-4437-92cb-980ebd4af369",
+              "name": "source",
+              "value": "={{$node[\"Set Node (Normalize + Defaults)\"].json.source}}",
+              "type": "string"
+            },
+            {
+              "id": "e2820797-d9f9-4d0f-afa3-bf39bc19e001",
+              "name": "status",
+              "value": "={{$node[\"Set Node (Normalize + Defaults)\"].json.status}}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        832,
+        -64
+      ],
+      "id": "007bdb46-8d4b-41e5-8c0d-53ceed7f4098",
+      "name": "Set Routing (From Rule)"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        1024,
+        0
+      ],
+      "id": "8403d07d-476a-44d9-9979-bbe942b2539e",
+      "name": "Merge"
+    },
+    {
+      "parameters": {
+        "tableId": "provider_issues",
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "provider_name",
+              "fieldValue": "={{$json.provider_name}}"
+            },
+            {
+              "fieldId": "provider_email",
+              "fieldValue": "={{$json.provider_email}}"
+            },
+            {
+              "fieldId": "issue_type",
+              "fieldValue": "={{$json.issue_type}}"
+            },
+            {
+              "fieldId": "severity",
+              "fieldValue": "={{$json.severity}}"
+            },
+            {
+              "fieldId": "subject",
+              "fieldValue": "={{$json.subject}}"
+            },
+            {
+              "fieldId": "description",
+              "fieldValue": "={{$json.description}}"
+            },
+            {
+              "fieldId": "source",
+              "fieldValue": "={{$json.source}}"
+            },
+            {
+              "fieldId": "status",
+              "fieldValue": "={{$json.status}}"
+            },
+            {
+              "fieldId": "assigned_team",
+              "fieldValue": "={{$json.assigned_team}}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        1184,
+        0
+      ],
+      "id": "a9898617-4b67-40e6-96a6-924598f118c8",
+      "name": "Insert into provider_issues",
+      "credentials": {
+        "supabaseApi": {
+          "id": "bQs8S5Xk5Ccj2SP0",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sendTo": "justinkdang@yahoo.com",
+        "subject": "=We received your request (Ticket {{$json.id}})",
+        "message": "=<p>Hi {{$json.provider_name}},</p>\n\n<p>\nThanks for reaching out. We’ve received your request and routed it to our\n<strong>{{$json.assigned_team}}</strong> team.\n</p>\n\n<p>\n<strong>Ticket ID:</strong> {{$json.id}}<br/>\n<strong>Issue Type:</strong> {{$json.issue_type}}<br/>\n<strong>Severity:</strong> {{$json.severity}}\n</p>\n\n<p>\nWe aim to respond within <strong>{{$json.sla_hours}} hours</strong>.\n</p>\n\n<p>\nBest regards,<br/>\nClinical Operations Team\n</p>\n",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        1696,
+        0
+      ],
+      "id": "e80adf90-a556-451c-a998-77f3b68cb74d",
+      "name": "Provider Confirmation Email",
+      "webhookId": "dbf01289-e94c-4852-b728-a7f63142a05a",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "facRNhpz5km9KvhO",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "tableId": "provider_issue_updates",
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "update_type",
+              "fieldValue": "ACK"
+            },
+            {
+              "fieldId": "message",
+              "fieldValue": "=Auto-ack sent."
+            },
+            {
+              "fieldId": "sent_to_provider",
+              "fieldValue": "true"
+            },
+            {
+              "fieldId": "issue_id",
+              "fieldValue": "={{$node[\"Clean Issue Payload\"].json.issue_id_clean}}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        1520,
+        0
+      ],
+      "id": "95bfff1f-fb07-4408-a788-f0c2791e7b77",
+      "name": "Create provider_issue_updates",
+      "credentials": {
+        "supabaseApi": {
+          "id": "bQs8S5Xk5Ccj2SP0",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "tableId": "team_routing_rules",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "issue_type",
+              "keyValue": "={{$json.issue_type}}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        416,
+        0
+      ],
+      "id": "d823f497-8195-4a69-bc86-00f95ab0fab1",
+      "name": "Get on team_routing_rules",
+      "credentials": {
+        "supabaseApi": {
+          "id": "bQs8S5Xk5Ccj2SP0",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "8d87e84e-b0ab-4689-8c45-b909dbb35004",
+              "name": "issue_id_clean",
+              "value": "={{$json.id.trim()}}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1360,
+        0
+      ],
+      "id": "9ba12a44-5c5d-4645-a266-b67a899ccfd3",
+      "name": "Clean Issue Payload"
+    },
+    {
+      "parameters": {
+        "content": "# Issue Routing & Provider Feedback Intake – n8n Workflow\n\n## Overview\n\nThis workflow serves as the primary intake and routing mechanism for provider-reported operational issues.\n\nIt listens for new provider submissions via a Google Form, normalizes and validates incoming data, applies dynamic routing logic based on issue type, and creates a new issue record in the system with appropriate defaults for ownership, severity, and source metadata.\n\nThe workflow ensures all provider requests enter the system in a consistent, traceable, and operationally actionable format, forming the foundation for downstream status tracking, audit logging, and reporting.\n",
+        "height": 400,
+        "width": 640
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -16,
+        -448
+      ],
+      "id": "5b380639-94a4-453b-818f-47ebf8a58238",
+      "name": "Sticky Note"
+    },
+    {
+      "parameters": {
+        "content": "# How to Use This Workflow\n\n## Purpose\nThis workflow is the entry point for provider-reported operational issues and should run continuously in the background.\n\n## 1. Provider Submits Feedback\n• Providers submit issues using the Provider Feedback Google Form.\n• Required information includes issue type, severity, subject, and description.\n\n## 2. Automatic Intake & Routing\n• The workflow triggers on each new form submission.\n• Inputs are normalized and validated.\n• Routing logic assigns the issue to the appropriate operational team.\n• If no routing rule is found, a default fallback assignment is applied.\n\n## 3. Issue Creation\n• A new record is created in the `provider_issues` table.\n• The issue is initialized with status = NEW and source = google_form.\n• This record becomes the system of record for all future updates.\n\n## 4. Provider Acknowledgment\n• An automatic acknowledgment email is sent to the provider confirming receipt.\n• An audit log entry is created to record the intake event.\n\n## 5. Downstream Workflows\n• Subsequent workflows handle status updates, provider notifications, and weekly reporting.\n• This workflow should not be modified to update issue status directly.\n\n## Operational Notes\n• Designed to run continuously without manual intervention.\n• Safe fallback logic ensures no issue is ever unassigned.\n• All provider requests are fully traceable from intake to resolution.\n",
+        "height": 896,
+        "width": 640,
+        "color": 4
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        1024,
+        -944
+      ],
+      "id": "d4191f29-88fc-489c-ac2a-147eeb365898",
+      "name": "Sticky Note1"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Google Sheets Trigger": {
+      "main": [
+        [
+          {
+            "node": "Set Node (Normalize + Defaults)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set Node (Normalize + Defaults)": {
+      "main": [
+        [
+          {
+            "node": "Get on team_routing_rules",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Set Routing (From Rule)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Set Routing (Fallback)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set Routing (From Rule)": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set Routing (Fallback)": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Merge": {
+      "main": [
+        [
+          {
+            "node": "Insert into provider_issues",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Insert into provider_issues": {
+      "main": [
+        [
+          {
+            "node": "Clean Issue Payload",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Provider Confirmation Email": {
+      "main": [
+        []
+      ]
+    },
+    "Create provider_issue_updates": {
+      "main": [
+        [
+          {
+            "node": "Provider Confirmation Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get on team_routing_rules": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Clean Issue Payload": {
+      "main": [
+        [
+          {
+            "node": "Create provider_issue_updates",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "225ff849-8e28-44e2-9dc5-ff0986b8f9c7",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "9f65d1de108209ec46a801cb48812b1a1fe754417a806dbffe1a74da62df9826"
+  },
+  "id": "TYHW07tBNGoCCwQy",
+  "tags": []
+}
