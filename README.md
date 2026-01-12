@@ -69,12 +69,12 @@ See `database/schema.sql` for full definitions.
 ### Provider Feedback Form
 Used by providers to submit operational issues (scheduling, billing, access).
 
-🔗 https://forms.gle/XXXXXXXX
+🔗 https://docs.google.com/forms/d/e/1FAIpQLSdYP-MGAUHWBxbptryYUtoOVanegJ3V_3P0tiyogAkGC3Xfxg/viewform
 
 ### Ops Issue Status Update Form
 Internal form used by Operations to update issue status.
 
-🔗 https://forms.gle/YYYYYYYY
+🔗 https://docs.google.com/forms/d/e/1FAIpQLScLtFXo6D3-B_ZF6JR8BOYj87dNfAJ6W5GnuqttgsgoiEKebA/viewform
 
 
 ## Example Scenarios
