@@ -1,0 +1,233 @@
+{
+  "name": "Weekly Ops Summary",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "weeks",
+              "triggerAtDay": [
+                1
+              ],
+              "triggerAtHour": 9
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        -16,
+        368
+      ],
+      "id": "77f205be-81a9-4837-8fa3-999a47e787ba",
+      "name": "Schedule Trigger"
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "tableId": "provider_issues",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "status",
+              "condition": "neq",
+              "keyValue": "RESOLVED"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        384,
+        560
+      ],
+      "id": "e337e5f8-0620-4baa-83c0-88c9a2aea222",
+      "name": "Open Backlog",
+      "executeOnce": true,
+      "credentials": {
+        "supabaseApi": {
+          "id": "bQs8S5Xk5Ccj2SP0",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "tableId": "provider_issues",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "created_at",
+              "condition": "gte",
+              "keyValue": "={{ new Date(Date.now() - 7*24*60*60*1000).toISOString() }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        192,
+        368
+      ],
+      "id": "51c3cb4d-7ca3-4d6c-b66a-72fb62c13815",
+      "name": "Get recent issues",
+      "credentials": {
+        "supabaseApi": {
+          "id": "bQs8S5Xk5Ccj2SP0",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// n8n \"Code\" node receives multiple inputs as separate arrays.\n// We'll detect which one is \"recent\" vs \"open\" by checking for created_at filter presence isn't visible,\n// so we assume: Input 0 = recent issues, Input 1 = open backlog (based on your wiring).\n\nconst recentIssues = $input.all(0).map(i => i.json);\nconst openIssues = $input.all(1).map(i => i.json);\n\n// Helper: counts\nconst countBy = (arr, key) => {\n  const out = {};\n  for (const item of arr) {\n    const k = item[key] ?? \"UNKNOWN\";\n    out[k] = (out[k] || 0) + 1;\n  }\n  return out;\n};\n\n// Avg helper\nconst avg = (arr) => arr.length ? (arr.reduce((a,b) => a + b, 0) / arr.length) : null;\n\n// Time-to-ack (hours) for issues that have acknowledged_at\nconst ackHours = recentIssues\n  .filter(i => i.acknowledged_at)\n  .map(i => (new Date(i.acknowledged_at) - new Date(i.created_at)) / 36e5);\n\n// Time-to-resolve (hours) for issues that have resolved_at\nconst resolveHours = recentIssues\n  .filter(i => i.resolved_at)\n  .map(i => (new Date(i.resolved_at) - new Date(i.created_at)) / 36e5);\n\nconst issuesByType = countBy(recentIssues, \"issue_type\");\nconst issuesBySeverity = countBy(recentIssues, \"severity\");\nconst backlogByTeam = countBy(openIssues, \"assigned_team\");\nconst backlogByStatus = countBy(openIssues, \"status\");\n\n// Top 3 types\nconst topTypes = Object.entries(issuesByType)\n  .sort((a,b) => b[1] - a[1])\n  .slice(0,3);\n\nreturn [{\n  json: {\n    total_new_issues_7d: recentIssues.length,\n    issues_by_type: issuesByType,\n    issues_by_severity: issuesBySeverity,\n    open_backlog_total: openIssues.length,\n    backlog_by_team: backlogByTeam,\n    backlog_by_status: backlogByStatus,\n    avg_ack_hours_7d: avg(ackHours) ? avg(ackHours).toFixed(1) : \"N/A\",\n    avg_resolve_hours_7d: avg(resolveHours) ? avg(resolveHours).toFixed(1) : \"N/A\",\n    top_types: topTypes\n  }\n}];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        592,
+        368
+      ],
+      "id": "3c82a71b-0e8f-4451-b7c3-3d2e792c9750",
+      "name": "Calculate Metrics"
+    },
+    {
+      "parameters": {
+        "sendTo": "justinkdang@yahoo.com",
+        "subject": "Weekly Provider Ops Summary (Last 7 Days)",
+        "message": "=<p><strong>Weekly Provider Operations Summary</strong></p>  <p> <strong>New issues (7d):</strong> {{$json.total_new_issues_7d}}<br/> <strong>Open backlog:</strong> {{$json.open_backlog_total}}<br/> <strong>Avg time to acknowledge:</strong> {{$json.avg_ack_hours_7d}} hours<br/> <strong>Avg time to resolve:</strong> {{$json.avg_resolve_hours_7d}} hours </p>  <p><strong>Top issue types (7d):</strong></p> <ul>   {{ $json.top_types.map(t => `<li>${t[0]}: ${t[1]}</li>`).join(\"\") }} </ul>  <p><strong>Issues by severity (7d):</strong></p> <ul>   {{ Object.entries($json.issues_by_severity).map(([k,v]) => `<li>${k}: ${v}</li>`).join(\"\") }} </ul>  <p><strong>Backlog by team:</strong></p> <ul>   {{ Object.entries($json.backlog_by_team).map(([k,v]) => `<li>${k}: ${v}</li>`).join(\"\") }} </ul>  <p><strong>Backlog by status:</strong></p> <ul>   {{ Object.entries($json.backlog_by_status).map(([k,v]) => `<li>${k}: ${v}</li>`).join(\"\") }} </ul>  <p style=\"color:#666;\">– Automated Clinical Ops Report</p>",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        784,
+        368
+      ],
+      "id": "ab62d698-89a1-4bbc-92e4-2de5656cd143",
+      "name": "Send a message",
+      "webhookId": "baf6ac3c-c8c4-428c-94e8-b4591e0d61e5",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "facRNhpz5km9KvhO",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "# Weekly Provider Operations Summary – n8n Workflow\n\n## Overview\n\nThis workflow generates a weekly operational summary for the Clinical Operations team by analyzing provider-reported issues stored in the system.\n\nOn a scheduled basis, it retrieves recent issues and the current open backlog from the database, calculates key operational metrics (volume, backlog, response times, and trends), and delivers a concise summary email to Operations stakeholders.\n\nThe goal of this workflow is to provide leadership-level visibility into operational health, workload distribution, and response performance without requiring manual reporting.\n",
+        "height": 400,
+        "width": 640
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -208,
+        -80
+      ],
+      "id": "0841050b-bf99-4849-a6d3-f49e3376df74",
+      "name": "Sticky Note"
+    },
+    {
+      "parameters": {
+        "content": "# Execution Flow\n\n1. Schedule Trigger\n   - Runs weekly on a fixed cadence.\n\n2. Data Collection\n   - Fetches issues created in the last 7 days.\n   - Fetches all unresolved issues to represent the active backlog.\n\n3. Metrics Calculation\n   - Aggregates counts and averages.\n   - Computes response-time metrics using timestamps.\n   - Identifies top issue categories and workload distribution.\n\n4. Reporting\n   - Formats results into a readable operational summary.\n   - Sends a weekly email report to the Operations team.\n\nThis workflow is read-only and does not modify issue records.\n",
+        "height": 464,
+        "width": 512,
+        "color": 4
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        576,
+        -192
+      ],
+      "id": "5e4fc2c8-ebc0-4d6e-8eae-27595534704d",
+      "name": "Sticky Note1"
+    },
+    {
+      "parameters": {
+        "content": "# Metrics Calculated\n\nThis workflow computes key operational KPIs for the last 7 days, including:\n\n• Total new provider issues\n• Open backlog size\n• Issues by type (e.g., Scheduling, Billing, Access)\n• Issues by severity\n• Backlog distribution by assigned team\n• Backlog distribution by status\n• Average time to acknowledge issues\n• Average time to resolve issues\n• Top recurring issue categories\n\nThese metrics are designed to mirror real Clinical Ops performance indicators used for workload management and process improvement.\n",
+        "height": 368,
+        "width": 560,
+        "color": 6
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        624,
+        576
+      ],
+      "id": "9a97e7bc-ffc3-4326-b509-46cc096bfd4d",
+      "name": "Sticky Note2"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Get recent issues",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get recent issues": {
+      "main": [
+        [
+          {
+            "node": "Open Backlog",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Calculate Metrics",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Open Backlog": {
+      "main": [
+        [
+          {
+            "node": "Calculate Metrics",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Calculate Metrics": {
+      "main": [
+        [
+          {
+            "node": "Send a message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "73f962a2-8544-4e82-82a1-583289973d62",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "9f65d1de108209ec46a801cb48812b1a1fe754417a806dbffe1a74da62df9826"
+  },
+  "id": "tXrJLeUlD6hkj2Xe",
+  "tags": []
+}
