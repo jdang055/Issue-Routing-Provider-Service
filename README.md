@@ -64,6 +64,19 @@ See `database/schema.sql` for full definitions.
 
 ---
 
+## Google Forms
+
+### Provider Feedback Form
+Used by providers to submit operational issues (scheduling, billing, access).
+
+🔗 https://forms.gle/XXXXXXXX
+
+### Ops Issue Status Update Form
+Internal form used by Operations to update issue status.
+
+🔗 https://forms.gle/YYYYYYYY
+
+
 ## Example Scenarios
 
 Located in `/examples`:
