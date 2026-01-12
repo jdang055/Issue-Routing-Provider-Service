@@ -1,0 +1,386 @@
+{
+  "name": "Provider Status Update Workflow",
+  "nodes": [
+    {
+      "parameters": {
+        "pollTimes": {
+          "item": [
+            {
+              "mode": "everyMinute"
+            }
+          ]
+        },
+        "documentId": {
+          "__rl": true,
+          "value": "1qMeVEYEwvw_CV_DHGi_KieZ0-6UC6vuA9aIy3yVQw6g",
+          "mode": "list",
+          "cachedResultName": "Ops Issue Status Update (Responses)",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1qMeVEYEwvw_CV_DHGi_KieZ0-6UC6vuA9aIy3yVQw6g/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 522805966,
+          "mode": "list",
+          "cachedResultName": "Form Responses 1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1qMeVEYEwvw_CV_DHGi_KieZ0-6UC6vuA9aIy3yVQw6g/edit#gid=522805966"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheetsTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "5ee4ff0b-778e-406c-985d-26e2cd935a5b",
+      "name": "Google Sheets Trigger",
+      "credentials": {
+        "googleSheetsTriggerOAuth2Api": {
+          "id": "3WXSdVhXWgxozhYk",
+          "name": "Google Sheets Trigger account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "2d546342-a43f-4752-89f6-f4a4573af112",
+              "name": "issue_id",
+              "value": "={{ ($json[\"Issue ID\"] ?? $json[\"Issue ID \"] ?? \"\")\n  .toString()\n  .replace(/\\\\n/g, \"\")\n  .trim() }}",
+              "type": "string"
+            },
+            {
+              "id": "e7119a0e-14de-4741-983e-fd327ddf4d38",
+              "name": "new_status",
+              "value": "={{ ($json.new_status ?? $json[\"  New Status  \"] ?? \"\").toString().replace(/\\r?\\n/g, \"\").trim().toUpperCase() }}",
+              "type": "string"
+            },
+            {
+              "id": "ccfe8830-9fd8-4afb-909a-06159065c259",
+              "name": "message",
+              "value": "={{ ($json.message ?? $json[\"  Update Message  \"] ?? \"\").toString().replace(/\\r?\\n/g, \"\").trim() }}",
+              "type": "string"
+            },
+            {
+              "id": "41cf23b3-062b-49bc-ae37-8a66bff03a3c",
+              "name": "notify_provider",
+              "value": "={{ ($json.notify_provider ?? $json[\"  Notify Provider?  \"] ?? \"NO\").toString().replace(/\\r?\\n/g, \"\").trim().toUpperCase() }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        208,
+        0
+      ],
+      "id": "c294c114-2a1a-4b7c-bb05-ca2dbc44cb67",
+      "name": "Set node: Normalize + clean inputs"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT\n  pi.*,\n  $2::text    AS new_status,\n  $3::text    AS message,\n  $4::boolean AS notify_provider\nFROM public.provider_issues pi\nWHERE pi.id = $1::uuid\nLIMIT 1;\n",
+        "options": {
+          "queryReplacement": "={{ $node[\"Set node: Normalize + clean inputs\"].json.issue_id }}, {{ $node[\"Set node: Normalize + clean inputs\"].json.new_status }}, {{ $node[\"Set node: Normalize + clean inputs\"].json.message }}, {{ $node[\"Set node: Normalize + clean inputs\"].json.notify_provider }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        416,
+        0
+      ],
+      "id": "71d363a6-5866-42b5-aae7-ca45041458a6",
+      "name": "Execute a SQL query",
+      "credentials": {
+        "postgres": {
+          "id": "v8P4S5lsyTItc86K",
+          "name": "Provider Feedback System"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE public.provider_issues\nSET\n  status = $2::text,\n  acknowledged_at = CASE\n    WHEN $2::text IN ('ACKED','IN_PROGRESS','RESOLVED')\n      THEN COALESCE(acknowledged_at, NOW())\n    ELSE acknowledged_at\n  END,\n  resolved_at = CASE\n    WHEN $2::text = 'RESOLVED'\n      THEN COALESCE(resolved_at, NOW())\n    ELSE resolved_at\n  END\nWHERE id = $1::uuid\nRETURNING *;\n",
+        "options": {
+          "queryReplacement": "={{ $json.id }} , {{ $json.status }} , {{ $json.acknowledged_at }} , {{ $json.resolved_at }}\n\n\n"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        864,
+        192
+      ],
+      "id": "080ddf0a-5f5c-4c33-b14d-bdc234f6784f",
+      "name": "Update issue status",
+      "credentials": {
+        "postgres": {
+          "id": "v8P4S5lsyTItc86K",
+          "name": "Provider Feedback System"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "4457f080-d2b6-4605-bac1-fe07cd0fc2c3",
+              "name": "id",
+              "value": "={{ $json.id }}",
+              "type": "string"
+            },
+            {
+              "id": "426405a7-c7d8-4357-8d0b-b55a4c2ec6a3",
+              "name": "=status",
+              "value": "={{ $json.new_status }}",
+              "type": "string"
+            },
+            {
+              "id": "3ce45e4b-c1bd-4ce1-adc1-86a8f11314e2",
+              "name": "acknowledged_at",
+              "value": "={{ [\"ACKED\",\"IN_PROGRESS\",\"RESOLVED\"].includes($json.new_status) && !$json.acknowledged_at     ? new Date().toISOString()     : undefined }}",
+              "type": "string"
+            },
+            {
+              "id": "152bbb25-0793-4caf-9c92-0180fb60166d",
+              "name": "resolved_at",
+              "value": "={{ $json.new_status === \"RESOLVED\"\n  ? new Date().toISOString()\n  : null }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        688,
+        192
+      ],
+      "id": "448f10f1-6b9e-4609-9de5-0c234924abde",
+      "name": "Prepare Update Payload"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO public.provider_issue_updates\n  (issue_id, update_type, message, sent_to_provider)\nVALUES\n  ($1::uuid, 'STATUS_CHANGE', $2::text, $3::boolean)\nRETURNING *;\n",
+        "options": {
+          "queryReplacement": "={{ $json.id }} , {{ $json.status + ($json.message ? (': ' + $json.message) : '') }} , {{ $json.notify_provider }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        736,
+        0
+      ],
+      "id": "7d5ecfb5-08b7-4113-9b86-d5d55ea2c273",
+      "name": "Audit log",
+      "credentials": {
+        "postgres": {
+          "id": "v8P4S5lsyTItc86K",
+          "name": "Provider Feedback System"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "0e581175-0202-4a11-a822-deffd50905bb",
+              "leftValue": "={{ $json.notify_provider }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        736,
+        -160
+      ],
+      "id": "49858c8a-02a9-4af5-a87c-eeed2a9545ef",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "sendTo": "justinkdang@yahoo.com",
+        "subject": "=Update on your request (Ticket {{ $json.id }})",
+        "message": "=<p>Hi {{ $json.provider_name }},</p>  <p>Update on your request:</p>  <p>   <strong>Ticket:</strong> {{ $json.id }}<br/>   <strong>Status:</strong> {{ $json.new_status }} </p>  {{ $json.message ? `<p><strong>Note:</strong> ${$json.message}</p>` : \"\" }}  <p>Best regards,<br/> Clinical Operations Team</p>",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        976,
+        -176
+      ],
+      "id": "2fa0c2df-f992-42e1-a795-e5a1d78796d2",
+      "name": "Send a message",
+      "webhookId": "8822cb71-7c14-4826-8fe1-0a67da01c1b4",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "facRNhpz5km9KvhO",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "# Provider Issue Status Update – n8n Workflow\n\n## Overview\n\nThis workflow manages the internal lifecycle of provider-reported operational issues for a Clinical Operations team.\n\nIt listens for new status updates submitted through an internal Google Form, retrieves the corresponding issue from a Supabase-hosted Postgres database, updates the issue’s status and timestamps, records an immutable audit log entry, and optionally notifies the provider via email.\n\nThe workflow is designed to support real-world operational processes including issue acknowledgment, active investigation, resolution tracking, and compliance-friendly change logging.\n",
+        "height": 448,
+        "width": 496
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -64,
+        -512
+      ],
+      "id": "bd195d7e-ab61-43ca-af3d-339c25a54074",
+      "name": "Sticky Note"
+    },
+    {
+      "parameters": {
+        "content": "# How to Use This Workflow\n\n## 0. Prerequisites\n- Provider issues must already exist in the `provider_issues` table.\n- Issue IDs used in the Ops form must match valid UUIDs in the database.\n\n## 1. Configure Credentials\n- Google Sheets Trigger credentials (linked to Ops Status Update form responses).\n- Postgres credentials for the Supabase database.\n- Gmail credentials for provider notifications (optional).\n\n## 2. Submit an Ops Status Update\n- Operations staff submit updates via the internal Google Form.\n- Supported statuses:\n  - ACKED\n  - IN_PROGRESS\n  - RESOLVED\n- Optional update message and provider notification flag.\n\n## 3. Workflow Processing\n- Inputs are normalized and validated.\n- The corresponding issue is retrieved from the database.\n- Issue status and timestamps are updated atomically.\n- A status change record is inserted into the audit log table.\n\n## 4. Provider Notification (Optional)\n- If enabled, an email is sent to the provider summarizing the update.\n- Email content includes ticket ID, new status, and optional notes.\n\n## 5. Operational Guarantees\n- Acknowledged and resolved timestamps are set only once.\n- Every status change is permanently logged for traceability.\n- The workflow is safe to run continuously without duplicating updates.\n",
+        "height": 960,
+        "width": 496,
+        "color": 4
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        656,
+        -1168
+      ],
+      "id": "0f4294a3-1d69-49a7-823c-8d225c501e21",
+      "name": "Sticky Note1"
+    }
+  ],
+  "pinData": {
+    "Google Sheets Trigger": [
+      {
+        "json": {
+          "Timestamp": "1/11/2026 23:33:47",
+          "Issue ID": ": b1d9c37f-7a48-4eff-a16b-5157fa342e75",
+          "  New Status  ": "RESOLVED",
+          "  Update Message  ": "Copay configuration has been corrected. Affected patients will receive refunds.",
+          "  Notify Provider?  ": "YES",
+          "processed_at": ""
+        }
+      }
+    ]
+  },
+  "connections": {
+    "Google Sheets Trigger": {
+      "main": [
+        [
+          {
+            "node": "Set node: Normalize + clean inputs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set node: Normalize + clean inputs": {
+      "main": [
+        [
+          {
+            "node": "Execute a SQL query",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Execute a SQL query": {
+      "main": [
+        [
+          {
+            "node": "Prepare Update Payload",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Audit log",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update issue status": {
+      "main": [
+        []
+      ]
+    },
+    "Prepare Update Payload": {
+      "main": [
+        [
+          {
+            "node": "Update issue status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Audit log": {
+      "main": [
+        []
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Send a message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "47a19a48-fb5e-42d9-a5f2-8d66d1eb35e7",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "9f65d1de108209ec46a801cb48812b1a1fe754417a806dbffe1a74da62df9826"
+  },
+  "id": "2k2LorkTsj5vG8Bs",
+  "tags": []
+}
