@@ -6,6 +6,8 @@ Google Forms, n8n, Supabase/Postgres, and Gmail.
 
 ---
 
+![Issue Routing Architecture](docs/provider_update.png)
+
 ## Why this project
 Clinical Ops teams handle a high volume of provider-reported issues (scheduling,
 billing, technical access, etc.). This system demonstrates:
