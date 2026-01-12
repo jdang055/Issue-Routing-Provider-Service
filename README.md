@@ -5,7 +5,8 @@ This project simulates a real-world Clinical Operations support system using
 Google Forms, n8n, Supabase/Postgres, and Gmail.
 
 ---
-
+![Issue Routing Architecture](docs/issue_routing.png)
+![Issue Routing Architecture](docs/weekly_ops.png)
 ![Issue Routing Architecture](docs/provider_update.png)
 
 ## Why this project
